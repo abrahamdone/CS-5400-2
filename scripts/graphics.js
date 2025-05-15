@@ -4,7 +4,7 @@
 // space for use in demonstrating some basic rendering techniques.
 //
 // ------------------------------------------------------------------
-MySample.graphics = (function(pixelsX, pixelsY, showPixels) {
+MySample.graphics = function(pixelsX, pixelsY, showPixels) {
     'use strict';
 
     const canvas = document.getElementById('canvas-main');
@@ -185,28 +185,19 @@ MySample.graphics = (function(pixelsX, pixelsY, showPixels) {
         if (segmentColors.length === 0) {
             return;
         }
-        let u = 0.0;
-        let du = 1 / segmentColors.length;
-        let segmentPoints = [];
-
-        for (let i = 0; i < segmentColors.length; i++) {
-            let xu = hermiteBlending(controls.start.x, controls.controlOne.x, controls.end.x, controls.controlTwo.x, u);
-            let yu = hermiteBlending(controls.start.y, controls.controlOne.y, controls.end.y, controls.controlTwo.y, u);
-
-            segmentPoints.push({x: xu, y: yu});
-            u += du;
-        }
-
+        let Mx = efficientHermiteMatrix(controls.start.x, controls.end.x, controls.controlOne.x, controls.controlTwo.x);
+        let My = efficientHermiteMatrix(controls.start.y, controls.end.y, controls.controlOne.y, controls.controlTwo.y);
+        let segmentPoints = createSegments(Mx, My, segmentColors.length);
         segmentPoints.push(controls.end);
 
         drawSegments(controls, segmentPoints, segmentColors, showPoints, showLine, showControl);
     }
 
-    function hermiteBlending(p0, pp0, p1, pp1, u) {
-        return p0 * (2 * u ** 3 - 3 * u ** 2 + 1)
-            + p1 * (-2 * u ** 3 + 3 * u ** 2)
-            + pp0 * (u ** 3 - 2 * u ** 2 + u)
-            + pp1 * (u ** 3 - u ** 2);
+    function efficientHermiteMatrix(p0, p1, pp0, pp1) {
+        return math.multiply(
+            math.matrix([[2, -2, 1, 1], [-3, 3, -2, -1], [0, 0, 1, 0], [1, 0, 0, 0]]),
+            math.matrix([[p0], [p1], [pp0], [pp1]])
+        )
     }
 
     //------------------------------------------------------------------
@@ -218,29 +209,20 @@ MySample.graphics = (function(pixelsX, pixelsY, showPixels) {
         if (segmentColors.length === 0) {
             return;
         }
-        let u = 0.0;
-        let du = 1 / segmentColors.length;
-        let segmentPoints = [];
         let s = (1 - controls.tension) / 2;
-
-        for (let i = 0; i < segmentColors.length; i++) {
-            let xu = cardinalBlending(controls.controlOne.x, controls.start.x, controls.end.x, controls.controlTwo.x, s, u);
-            let yu = cardinalBlending(controls.controlOne.y, controls.start.y, controls.end.y, controls.controlTwo.y, s, u);
-
-            segmentPoints.push({x: xu, y: yu});
-            u += du;
-        }
-
+        let Mx = efficientCardinalMatrix(controls.controlOne.x, controls.start.x, controls.end.x, controls.controlTwo.x, s);
+        let My = efficientCardinalMatrix(controls.controlOne.y, controls.start.y, controls.end.y, controls.controlTwo.y, s);
+        let segmentPoints = createSegments(Mx, My, segmentColors.length);
         segmentPoints.push(controls.end);
 
         drawSegments(controls, segmentPoints, segmentColors, showPoints, showLine, showControl);
     }
 
-    function cardinalBlending(pk_1, pk, pk1, pk2, s, u) {
-        return pk_1 * (-s * u ** 3 + 2 * s * u ** 2 - s * u)
-            + pk * ((2 - s) * u ** 3 + (s - 3) * u ** 2 + 1)
-            + pk1 * ((s - 2) * u ** 3 + (3 - 2 * s) * u ** 2 + s * u)
-            + pk2 * (s * u ** 3 - s * u ** 2);
+    function efficientCardinalMatrix(pk_1, pk, pk1, pk2, s) {
+        return math.multiply(
+            math.matrix([[-s, 2 - s, s - 2, s], [2 * s, s - 3, 3 - 2 * s, -s], [-s, 0, s, 0], [0, 1, 0, 0]]),
+            math.matrix([[pk_1], [pk], [pk1], [pk2]])
+        )
     }
 
     //------------------------------------------------------------------
@@ -249,8 +231,39 @@ MySample.graphics = (function(pixelsX, pixelsY, showPixels) {
     //
     //------------------------------------------------------------------
     function drawCurveBezier(controls, segmentColors, showPoints, showLine, showControl) {
+        if (segmentColors.length === 0) {
+            return;
+        }
+        let Mx = efficientBezierMatrix(controls.start.x, controls.controlOne.x, controls.controlTwo.x, controls.end.x);
+        let My = efficientBezierMatrix(controls.start.y, controls.controlOne.y, controls.controlTwo.y, controls.end.y);
+        let segmentPoints = createSegments(Mx, My, segmentColors.length);
+        segmentPoints.push(controls.end);
 
-        drawSegments(controls, [controls.start, controls.end], segmentColors, showPoints, showLine, showControl);
+        drawSegments(controls, segmentPoints, segmentColors, showPoints, showLine, showControl);
+    }
+
+    function efficientBezierMatrix(p0, p1, p2, p3) {
+        return math.multiply(
+            math.matrix([[1, -3, 3, -1], [0, 3, -6, 3], [0, 0, 3, -3], [0, 0, 0, 1]]),
+            math.matrix([[p0], [p1], [p2], [p3]])
+        )
+    }
+
+    function createSegments(Mx, My, segments) {
+        let u = 0.0;
+        let du = 1 / segments;
+        let segmentPoints = [];
+
+        for (let i = 0; i < segments; i++) {
+            let Pu = math.matrix([[u ** 3, u ** 2, u, 1]]);
+            let Ux = math.multiply(Pu, Mx);
+            let Uy = math.multiply(Pu, My);
+
+            segmentPoints.push({x: Ux.get([0,0]), y: Uy.get([0,0])});
+            u += du;
+        }
+
+        return segmentPoints;
     }
 
     //------------------------------------------------------------------
@@ -324,4 +337,4 @@ MySample.graphics = (function(pixelsX, pixelsY, showPixels) {
     });
 
     return api;
-}(500, 500, true));
+}(500, 500, true);
