@@ -7,9 +7,10 @@ MySample.main = (function(graphics) {
     let end = {x: graphics.sizeX / 4 * 3, y: graphics.sizeY / 4 * 3};
     let controlOne = {x: graphics.sizeX / 2, y: graphics.sizeY / 4};
     let controlTwo = {x: graphics.sizeX / 2, y: graphics.sizeY / 4 * 3};
-    let segments = 1;
+    let segments = 1000;
     let nextHue = 0;
-    let colors = ['hsl(255, 100%, 50%)'];
+    let colors = [];
+    let frameBuffer = 0;
 
     //------------------------------------------------------------------
     //
@@ -17,13 +18,19 @@ MySample.main = (function(graphics) {
     //
     //------------------------------------------------------------------
     function update(elapsedTime) {
+        frameBuffer += 1;
+        if (frameBuffer < 50) {
+            return;
+        }
+        colors.length = 0;
         for (let i = 0; i < segments; i += 1) {
+            colors.push(`hsl(${nextHue}, 80%, 50%)`);
             if (nextHue > 360) {
                 nextHue = 0;
             }
-            colors[i] = `hsl(${nextHue}, 80%, 50%)`;
-            nextHue += 0.1;
+            nextHue += 1;
         }
+        frameBuffer = 0;
     }
 
     //------------------------------------------------------------------

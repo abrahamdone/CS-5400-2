@@ -182,8 +182,31 @@ MySample.graphics = (function(pixelsX, pixelsY, showPixels) {
     //
     //------------------------------------------------------------------
     function drawCurveHermite(controls, segmentColors, showPoints, showLine, showControl) {
+        if (segmentColors.length === 0) {
+            return;
+        }
+        let u = 0.0;
+        let du = 1 / segmentColors.length;
+        let segmentPoints = [];
 
-        drawSegments(controls, [controls.start, controls.end], segmentColors, showPoints, showLine, showControl);
+        for (let i = 0; i < segmentColors.length; i++) {
+            let xu = hermiteBlending(controls.start.x, controls.controlOne.x, controls.end.x, controls.controlTwo.x, u);
+            let yu = hermiteBlending(controls.start.y, controls.controlOne.y, controls.end.y, controls.controlTwo.y, u);
+
+            segmentPoints.push({x: xu, y: yu});
+            u += du;
+        }
+
+        segmentPoints.push(controls.end);
+
+        drawSegments(controls, segmentPoints, segmentColors, showPoints, showLine, showControl);
+    }
+
+    function hermiteBlending(p0, pp0, p1, pp1, u) {
+        return p0 * (2 * u ** 3 - 3 * u ** 2 + 1)
+            + p1 * (-2 * u ** 3 + 3 * u ** 2)
+            + pp0 * (u ** 3 - 2 * u ** 2 + u)
+            + pp1 * (u ** 3 - u ** 2);
     }
 
     //------------------------------------------------------------------
@@ -213,8 +236,8 @@ MySample.graphics = (function(pixelsX, pixelsY, showPixels) {
     //------------------------------------------------------------------
     function drawSegments(controls, segmentPoints, segmentColors, showPoints, showLine, showControl) {
         if (showControl) {
-            drawPoint(controls.controlOne.x, controls.controlOne.y, 'rgb(128, 128, 128)');
-            drawPoint(controls.controlTwo.x, controls.controlTwo.y, 'rgb(128, 128, 128)');
+            drawPoint(controls.controlOne.x, controls.controlOne.y, 'rgb(180, 180, 180)');
+            drawPoint(controls.controlTwo.x, controls.controlTwo.y, 'rgb(180, 180, 180)');
         }
         if (showPoints) {
             for (let i = 0; i < segmentPoints.length; i++) {
@@ -277,4 +300,4 @@ MySample.graphics = (function(pixelsX, pixelsY, showPixels) {
     });
 
     return api;
-}(50, 50, true));
+}(500, 500, true));
