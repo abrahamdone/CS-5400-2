@@ -195,7 +195,12 @@ MySample.graphics = function(pixelsX, pixelsY, showPixels) {
 
     function efficientHermiteMatrix(p0, p1, pp0, pp1) {
         return math.multiply(
-            math.matrix([[2, -2, 1, 1], [-3, 3, -2, -1], [0, 0, 1, 0], [1, 0, 0, 0]]),
+            math.matrix([
+                [ 2, -2,  1,  1],
+                [-3,  3, -2, -1],
+                [ 0,  0,  1,  0],
+                [ 1,  0,  0,  0]
+            ]),
             math.matrix([[p0], [p1], [pp0], [pp1]])
         )
     }
@@ -220,7 +225,12 @@ MySample.graphics = function(pixelsX, pixelsY, showPixels) {
 
     function efficientCardinalMatrix(pk_1, pk, pk1, pk2, s) {
         return math.multiply(
-            math.matrix([[-s, 2 - s, s - 2, s], [2 * s, s - 3, 3 - 2 * s, -s], [-s, 0, s, 0], [0, 1, 0, 0]]),
+            math.matrix([
+                [   -s,  2 - s,      s - 2,   s],
+                [2 * s,  s - 3,  3 - 2 * s,  -s],
+                [   -s,      0,          s,   0],
+                [    0,      1,          0,   0]
+            ]),
             math.matrix([[pk_1], [pk], [pk1], [pk2]])
         )
     }
@@ -237,14 +247,19 @@ MySample.graphics = function(pixelsX, pixelsY, showPixels) {
         let Mx = efficientBezierMatrix(controls.start.x, controls.controlOne.x, controls.controlTwo.x, controls.end.x);
         let My = efficientBezierMatrix(controls.start.y, controls.controlOne.y, controls.controlTwo.y, controls.end.y);
         let segmentPoints = createSegments(Mx, My, segmentColors.length);
-        segmentPoints.push(controls.end);
+        segmentPoints.push(controls.start);
 
         drawSegments(controls, segmentPoints, segmentColors, showPoints, showLine, showControl);
     }
 
     function efficientBezierMatrix(p0, p1, p2, p3) {
         return math.multiply(
-            math.matrix([[1, -3, 3, -1], [0, 3, -6, 3], [0, 0, 3, -3], [0, 0, 0, 1]]),
+            math.matrix([
+                [1, -3,  3, -1],
+                [0,  3, -6,  3],
+                [0,  0,  3, -3],
+                [0,  0,  0,  1]
+            ]),
             math.matrix([[p0], [p1], [p2], [p3]])
         )
     }
