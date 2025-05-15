@@ -3,6 +3,13 @@ MySample.main = (function(graphics) {
     'use strict';
 
     let previousTime = performance.now();
+    let start = {x: graphics.sizeX / 4, y: graphics.sizeY / 4};
+    let end = {x: graphics.sizeX / 4 * 3, y: graphics.sizeY / 4 * 3};
+    let controlOne = {x: graphics.sizeX / 2, y: graphics.sizeY / 4};
+    let controlTwo = {x: graphics.sizeX / 2, y: graphics.sizeY / 4 * 3};
+    let segments = 1;
+    let nextHue = 0;
+    let colors = ['hsl(255, 100%, 50%)'];
 
     //------------------------------------------------------------------
     //
@@ -10,6 +17,13 @@ MySample.main = (function(graphics) {
     //
     //------------------------------------------------------------------
     function update(elapsedTime) {
+        for (let i = 0; i < segments; i += 1) {
+            if (nextHue > 360) {
+                nextHue = 0;
+            }
+            colors[i] = `hsl(${nextHue}, 80%, 50%)`;
+            nextHue += 0.1;
+        }
     }
 
     //------------------------------------------------------------------
@@ -19,7 +33,20 @@ MySample.main = (function(graphics) {
     //------------------------------------------------------------------
     function render() {
         graphics.clear();
-
+        graphics.drawCurve(
+            graphics.Curve.Hermite,
+            {
+                start: start,
+                end: end,
+                controlOne: controlOne,
+                controlTwo: controlTwo
+            },
+            colors,
+            false,
+            true,
+            true
+        );
+        // graphics.drawLine(start.x, start.y, end.x, end.y, 'rgb(255,255,255)');
     }
 
     //------------------------------------------------------------------

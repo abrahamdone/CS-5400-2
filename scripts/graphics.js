@@ -124,9 +124,9 @@ MySample.graphics = (function(pixelsX, pixelsY, showPixels) {
         let y = 0;
 
         while (x <= Math.abs(x2 - x1)) {
-            // draw pixel adjusted for quadrant
+            // draw pixel adjusted for octant
             // move back from origin (add x1 and y1)
-            // also reverse mirror operations for specific quadrant
+            // also reverse mirror operations for specific octant
             switch (o) {
                 case 0:
                     drawPixel(y + y1, x + x1, color);
@@ -181,7 +181,9 @@ MySample.graphics = (function(pixelsX, pixelsY, showPixels) {
     // Renders an Hermite curve based on the input parameters.
     //
     //------------------------------------------------------------------
-    function drawCurveHermite(controls, segments, showPoints, showLine, showControl, lineColor) {
+    function drawCurveHermite(controls, segmentColors, showPoints, showLine, showControl) {
+
+        drawSegments(controls, [controls.start, controls.end], segmentColors, showPoints, showLine, showControl);
     }
 
     //------------------------------------------------------------------
@@ -189,7 +191,9 @@ MySample.graphics = (function(pixelsX, pixelsY, showPixels) {
     // Renders a Cardinal curve based on the input parameters.
     //
     //------------------------------------------------------------------
-    function drawCurveCardinal(controls, segments, showPoints, showLine, showControl, lineColor) {
+    function drawCurveCardinal(controls, segmentColors, showPoints, showLine, showControl) {
+
+        drawSegments(controls, [controls.start, controls.end], segmentColors, showPoints, showLine, showControl);
     }
 
     //------------------------------------------------------------------
@@ -197,7 +201,31 @@ MySample.graphics = (function(pixelsX, pixelsY, showPixels) {
     // Renders a Bezier curve based on the input parameters.
     //
     //------------------------------------------------------------------
-    function drawCurveBezier(controls, segments, showPoints, showLine, showControl, lineColor) {
+    function drawCurveBezier(controls, segmentColors, showPoints, showLine, showControl) {
+
+        drawSegments(controls, [controls.start, controls.end], segmentColors, showPoints, showLine, showControl);
+    }
+
+    //------------------------------------------------------------------
+    //
+    // Renders a set of line segments based on the input parameters.
+    //
+    //------------------------------------------------------------------
+    function drawSegments(controls, segmentPoints, segmentColors, showPoints, showLine, showControl) {
+        if (showControl) {
+            drawPoint(controls.controlOne.x, controls.controlOne.y, 'rgb(128, 128, 128)');
+            drawPoint(controls.controlTwo.x, controls.controlTwo.y, 'rgb(128, 128, 128)');
+        }
+        if (showPoints) {
+            for (let i = 0; i < segmentPoints.length; i++) {
+                drawPoint(segmentPoints[i].x, segmentPoints[i].y, 'rgb(255, 255, 255)');
+            }
+        }
+        if (showLine) {
+            for (let i = 0; i < segmentColors.length; i++) {
+                drawLine(segmentPoints[i].x, segmentPoints[i].y, segmentPoints[i + 1].x, segmentPoints[i + 1].y, segmentColors[i]);
+            }
+        }
     }
 
     //------------------------------------------------------------------
@@ -208,16 +236,16 @@ MySample.graphics = (function(pixelsX, pixelsY, showPixels) {
     // to those not experts in JavaScript.
     //
     //------------------------------------------------------------------
-    function drawCurve(type, controls, segments, showPoints, showLine, showControl, lineColor) {
+    function drawCurve(type, controls, segmentColors, showPoints, showLine, showControl) {
         switch (type) {
             case api.Curve.Hermite:
-                drawCurveHermite(controls, segments, showPoints, showLine, showControl, lineColor);
+                drawCurveHermite(controls, segmentColors, showPoints, showLine, showControl);
                 break;
             case api.Curve.Cardinal:
-                drawCurveCardinal(controls, segments, showPoints, showLine, showControl, lineColor);
+                drawCurveCardinal(controls, segmentColors, showPoints, showLine, showControl);
                 break;
             case api.Curve.Bezier:
-                drawCurveBezier(controls, segments, showPoints, showLine, showControl, lineColor);
+                drawCurveBezier(controls, segmentColors, showPoints, showLine, showControl);
                 break;
         }
     }
@@ -249,4 +277,4 @@ MySample.graphics = (function(pixelsX, pixelsY, showPixels) {
     });
 
     return api;
-}(1000, 1000, true));
+}(50, 50, true));
