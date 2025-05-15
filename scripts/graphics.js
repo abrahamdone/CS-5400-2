@@ -215,8 +215,32 @@ MySample.graphics = (function(pixelsX, pixelsY, showPixels) {
     //
     //------------------------------------------------------------------
     function drawCurveCardinal(controls, segmentColors, showPoints, showLine, showControl) {
+        if (segmentColors.length === 0) {
+            return;
+        }
+        let u = 0.0;
+        let du = 1 / segmentColors.length;
+        let segmentPoints = [];
+        let s = (1 - controls.tension) / 2;
 
-        drawSegments(controls, [controls.start, controls.end], segmentColors, showPoints, showLine, showControl);
+        for (let i = 0; i < segmentColors.length; i++) {
+            let xu = cardinalBlending(controls.controlOne.x, controls.start.x, controls.end.x, controls.controlTwo.x, s, u);
+            let yu = cardinalBlending(controls.controlOne.y, controls.start.y, controls.end.y, controls.controlTwo.y, s, u);
+
+            segmentPoints.push({x: xu, y: yu});
+            u += du;
+        }
+
+        segmentPoints.push(controls.end);
+
+        drawSegments(controls, segmentPoints, segmentColors, showPoints, showLine, showControl);
+    }
+
+    function cardinalBlending(pk_1, pk, pk1, pk2, s, u) {
+        return pk_1 * (-s * u ** 3 + 2 * s * u ** 2 - s * u)
+            + pk * ((2 - s) * u ** 3 + (s - 3) * u ** 2 + 1)
+            + pk1 * ((s - 2) * u ** 3 + (3 - 2 * s) * u ** 2 + s * u)
+            + pk2 * (s * u ** 3 - s * u ** 2);
     }
 
     //------------------------------------------------------------------
