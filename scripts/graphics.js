@@ -79,6 +79,101 @@ MySample.graphics = (function(pixelsX, pixelsY, showPixels) {
     //
     //------------------------------------------------------------------
     function drawLine(x1, y1, x2, y2, color) {
+        // vertical line would divide by 0 so special case
+        if (x1 == x2) {
+            let y = Math.min(y1, y2);
+            let d = Math.abs(y2 - y1);
+            for (let i = 0; i < d; i++) {
+                drawPixel(x1, y + i, color);
+            }
+            return;
+        }
+
+        let q = quadrant(x1, y1, x2, y2);
+        // adjust for quadrant
+        // quadrants 5-7 are mirrored over x-axis so swap start and end points
+        if (q >= 4) {
+            [x1, x2] = [x2, x1];
+            [y1, y2] = [y2, y1];
+            q = q - 4;
+        }
+        switch (q) {
+            case 0:
+                // mirror over x = y
+                [x1, y1, x2, y2] = [y1, x1, y2, x2];
+                break;
+            case 1:
+                // no change
+                break;
+            case 2:
+                // mirror over y-axis
+                [y1, y2] = [-y1, -y2];
+                break;
+            case 3:
+                // mirror over x = y and y-axis
+                [x1, y1, x2, y2] = [-y1, x1, -y2, x2];
+                break;
+        }
+
+        let dx = x2 - x1;
+        let dy = y2 - y1;
+        let pk = 2 * dy - dx;
+
+        // start from origin
+        let x = 0;
+        let y = 0;
+
+        while (x <= Math.abs(x2 - x1)) {
+            // draw pixel adjusted for quadrant
+            // move back from origin (add x1 and y1)
+            // also reverse mirror opperations for specific quadrant
+            switch (q) {
+                case 0:
+                    drawPixel(y + y1, x + x1, color);
+                    break;
+                case 1:
+                    drawPixel(x + x1, y + y1, color);
+                    break;
+                case 2:
+                    drawPixel(x + x1, -y - y1, color);
+                    break;
+                case 3:
+                    drawPixel(y + y1, -x - x1, color);
+                    break;
+            }
+            // calculate p_(k + 1)
+            if (pk >= 0) {
+                y = y + 1;
+                pk = pk + 2 * dy - 2 * dx;
+            } else {
+                pk = pk + 2 * dy;
+            }
+            x = x + 1;
+        }
+    }
+
+    //------------------------------------------------------------------
+    //
+    // Find the quadrant the slope lies in.
+    //
+    //------------------------------------------------------------------
+    function quadrant(x1, y1, x2, y2) {
+        let m = (y2 - y1) / (x2 - x1);
+        let q = x2 > x1 ? 0 : 4;
+
+        if (m >= 0) {
+            if (m >= 1) {
+                return q;
+            } else {
+                return q + 1;
+            }
+        } else {
+            if (m >= -1) {
+                return q + 2;
+            } else {
+                return q + 3;
+            }
+        }
     }
 
     //------------------------------------------------------------------
