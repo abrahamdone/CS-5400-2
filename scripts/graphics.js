@@ -89,15 +89,15 @@ MySample.graphics = (function(pixelsX, pixelsY, showPixels) {
             return;
         }
 
-        let q = quadrant(x1, y1, x2, y2);
-        // adjust for quadrant
-        // quadrants 5-7 are mirrored over x-axis so swap start and end points
-        if (q >= 4) {
+        let o = octant(x1, y1, x2, y2);
+        // adjust for octant
+        // octant 5-7 are mirrored over x-axis so swap start and end points
+        if (o >= 4) {
             [x1, x2] = [x2, x1];
             [y1, y2] = [y2, y1];
-            q = q - 4;
+            o = o - 4;
         }
-        switch (q) {
+        switch (o) {
             case 0:
                 // mirror over x = y
                 [x1, y1, x2, y2] = [y1, x1, y2, x2];
@@ -126,8 +126,8 @@ MySample.graphics = (function(pixelsX, pixelsY, showPixels) {
         while (x <= Math.abs(x2 - x1)) {
             // draw pixel adjusted for quadrant
             // move back from origin (add x1 and y1)
-            // also reverse mirror opperations for specific quadrant
-            switch (q) {
+            // also reverse mirror operations for specific quadrant
+            switch (o) {
                 case 0:
                     drawPixel(y + y1, x + x1, color);
                     break;
@@ -157,21 +157,21 @@ MySample.graphics = (function(pixelsX, pixelsY, showPixels) {
     // Find the quadrant the slope lies in.
     //
     //------------------------------------------------------------------
-    function quadrant(x1, y1, x2, y2) {
+    function octant(x1, y1, x2, y2) {
         let m = (y2 - y1) / (x2 - x1);
-        let q = x2 > x1 ? 0 : 4;
+        let o = x2 > x1 ? 0 : 4;
 
         if (m >= 0) {
             if (m >= 1) {
-                return q;
+                return o;
             } else {
-                return q + 1;
+                return o + 1;
             }
         } else {
             if (m >= -1) {
-                return q + 2;
+                return o + 2;
             } else {
-                return q + 3;
+                return o + 3;
             }
         }
     }
