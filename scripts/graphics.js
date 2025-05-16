@@ -190,34 +190,25 @@ MySample.graphics = function(pixelsX, pixelsY, showPixels) {
             return;
         }
         // Precompute for optimization
-        if (hermiteUMs.size !== segmentColors.length) {
-            calculateHermiteUMs(segmentColors.length);
+        let UMs = getUMs(hermiteUMs, segmentColors.length);
+        if (UMs.size !== segmentColors.length) {
+            let M = math.matrix([
+                [ 2, -2,  1,  1],
+                [-3,  3, -2, -1],
+                [ 0,  0,  1,  0],
+                [ 1,  0,  0,  0]
+            ]);
+            hermiteUMs = calculateUMs(M, segmentColors.length);
+            UMs = getUMs(hermiteUMs, segmentColors.length);
         }
         let pp0 = {x: controls.controlOne.x - controls.start.x, y: controls.controlOne.y - controls.start.y};
         let pp1 = {x: controls.end.x - controls.controlTwo.x, y: controls.end.y - controls.controlTwo.y};
         let Px = math.matrix([[controls.start.x], [controls.end.x], [pp0.x], [pp1.x]]);
         let Py = math.matrix([[controls.start.y], [controls.end.y], [pp0.y], [pp1.y]]);
-        let segmentPoints = createSegments(hermiteUMs, Px, Py, segmentColors.length);
+        let segmentPoints = createSegments(UMs, Px, Py, segmentColors.length);
         segmentPoints.push(controls.end);
 
         drawSegments(controls, segmentPoints, segmentColors, showPoints, showLine, showControl, true);
-    }
-
-    function calculateHermiteUMs(size) {
-        let M = math.matrix([
-            [ 2, -2,  1,  1],
-            [-3,  3, -2, -1],
-            [ 0,  0,  1,  0],
-            [ 1,  0,  0,  0]
-        ]);
-        let u = 0.0;
-        let du = 1 / size;
-        for (let i = 1; i <= size; i++) {
-            let U = math.matrix([[u ** 3, u ** 2, u, 1]]);
-            let UM = math.multiply(U, M);
-            hermiteUMs.set(u, UM);
-            u += du;
-        }
     }
 
     //------------------------------------------------------------------
@@ -231,10 +222,16 @@ MySample.graphics = function(pixelsX, pixelsY, showPixels) {
         }
         let s = (1 - controls.tension) / 2;
         // Precompute for optimization
-        let UMs = getCardinalUMs(segmentColors.length, s);
+        let UMs = getUMsWithS(cardinalUMs, segmentColors.length, s);
         if (UMs.size !== segmentColors.length) {
-            calculateCardinalUMs(segmentColors.length, s);
-            UMs = getCardinalUMs(segmentColors.length, s);
+            let M = math.matrix([
+                [   -s, 2 - s,     s - 2,  s],
+                [2 * s, s - 3, 3 - 2 * s, -s],
+                [   -s,     0,         s,  0],
+                [    0,     1,         0,  0]
+            ]);
+            cardinalUMs = calculateUMsWithS(M, segmentColors.length, s);
+            UMs = getUMsWithS(cardinalUMs, segmentColors.length, s);
         }
         let Px = math.matrix([[controls.controlOne.x], [controls.start.x], [controls.end.x], [controls.controlTwo.x]]);
         let Py = math.matrix([[controls.controlOne.y], [controls.start.y], [controls.end.y], [controls.controlTwo.y]]);
@@ -242,39 +239,6 @@ MySample.graphics = function(pixelsX, pixelsY, showPixels) {
         segmentPoints.push(controls.end);
 
         drawSegments(controls, segmentPoints, segmentColors, showPoints, showLine, showControl, false);
-    }
-
-    function calculateCardinalUMs(size, s) {
-        let M = math.matrix([
-            [   -s, 2 - s,     s - 2,  s],
-            [2 * s, s - 3, 3 - 2 * s, -s],
-            [   -s,     0,         s,  0],
-            [    0,     1,         0,  0]
-        ]);
-        let u = 0.0;
-        let du = 1 / size;
-        for (let i = 1; i <= size; i++) {
-            let U = math.matrix([[u ** 3, u ** 2, u, 1]]);
-            let UM = math.multiply(U, M);
-            cardinalUMs.set(`{s: ${s}, u: ${u}}`, UM);
-            u += du;
-        }
-    }
-
-    function getCardinalUMs(size, s) {
-        let UMs = new Map();
-        let u = 0.0;
-        let du = 1 / size;
-        for (let i = 1; i <= size; i++) {
-            let UM = cardinalUMs.get(`{s: ${s}, u: ${u}}`);
-            if (UM !== undefined) {
-                UMs.set(u, UM);
-            } else {
-                break;
-            }
-            u += du;
-        }
-        return UMs;
     }
 
     //------------------------------------------------------------------
@@ -287,32 +251,81 @@ MySample.graphics = function(pixelsX, pixelsY, showPixels) {
             return;
         }
         // Precompute for optimization
-        if (bezierUMs.size !== segmentColors.length) {
-            calculateBezierUMs(segmentColors.length);
+        let UMs = getUMs(bezierUMs, segmentColors.length);
+        if (UMs.size !== segmentColors.length) {
+            let M = math.matrix([
+                [1, -3,  3, -1],
+                [0,  3, -6,  3],
+                [0,  0,  3, -3],
+                [0,  0,  0,  1]
+            ]);
+            bezierUMs = calculateUMs(M, segmentColors.length);
+            UMs = getUMs(bezierUMs, segmentColors.length);
         }
         let Px = math.matrix([[controls.start.x], [controls.controlOne.x], [controls.controlTwo.x], [controls.end.x]]);
         let Py = math.matrix([[controls.start.y], [controls.controlOne.y], [controls.controlTwo.y], [controls.end.y]]);
-        let segmentPoints = createSegments(bezierUMs, Px, Py, segmentColors.length);
+        let segmentPoints = createSegments(UMs, Px, Py, segmentColors.length);
         segmentPoints.push(controls.start);
 
         drawSegments(controls, segmentPoints, segmentColors, showPoints, showLine, showControl, false);
     }
 
-    function calculateBezierUMs(size) {
-        let M = math.matrix([
-            [1, -3,  3, -1],
-            [0,  3, -6,  3],
-            [0,  0,  3, -3],
-            [0,  0,  0,  1]
-        ]);
+    function calculateUMs(M, size) {
+        let UMs = new Map();
         let u = 0.0;
         let du = 1 / size;
         for (let i = 1; i <= size; i++) {
             let U = math.matrix([[u ** 3, u ** 2, u, 1]]);
             let UM = math.multiply(U, M);
-            bezierUMs.set(u, UM);
+            UMs.set(u, UM);
             u += du;
         }
+        return UMs;
+    }
+
+    function getUMs(precomputeUMs, size) {
+        let UMs = new Map();
+        let u = 0.0;
+        let du = 1 / size;
+        for (let i = 1; i <= size; i++) {
+            let UM = precomputeUMs.get(u);
+            if (UM !== undefined) {
+                UMs.set(u, UM);
+            } else {
+                break;
+            }
+            u += du;
+        }
+        return UMs;
+    }
+
+    function calculateUMsWithS(M, size, s) {
+        let UMs = new Map();
+        let u = 0.0;
+        let du = 1 / size;
+        for (let i = 1; i <= size; i++) {
+            let U = math.matrix([[u ** 3, u ** 2, u, 1]]);
+            let UM = math.multiply(U, M);
+            UMs.set(`{s: ${s}, u: ${u}}`, UM);
+            u += du;
+        }
+        return UMs;
+    }
+
+    function getUMsWithS(precomputedUMs, size, s) {
+        let UMs = new Map();
+        let u = 0.0;
+        let du = 1 / size;
+        for (let i = 1; i <= size; i++) {
+            let UM = precomputedUMs.get(`{s: ${s}, u: ${u}}`);
+            if (UM !== undefined) {
+                UMs.set(u, UM);
+            } else {
+                break;
+            }
+            u += du;
+        }
+        return UMs;
     }
 
     function createSegments(UMs, Px, Py, segments) {
