@@ -42,7 +42,7 @@ MySample.main = (function(graphics) {
     function render() {
         graphics.clear();
         graphics.drawCurve(
-            graphics.Curve.Hermite,
+            graphics.Curve.Bezier,
             {
                 start: start,
                 end: end,

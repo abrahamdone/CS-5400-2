@@ -185,12 +185,15 @@ MySample.graphics = function(pixelsX, pixelsY, showPixels) {
         if (segmentColors.length === 0) {
             return;
         }
-        let Mx = efficientHermiteMatrix(controls.start.x, controls.end.x, controls.controlOne.x, controls.controlTwo.x);
-        let My = efficientHermiteMatrix(controls.start.y, controls.end.y, controls.controlOne.y, controls.controlTwo.y);
+        let pp0 = {x: controls.controlOne.x - controls.start.x, y: controls.controlOne.y - controls.start.y};
+        let pp1 = {x: controls.end.x - controls.controlTwo.x, y: controls.end.y - controls.controlTwo.y};
+
+        let Mx = efficientHermiteMatrix(controls.start.x, controls.end.x, pp0.x, pp1.x);
+        let My = efficientHermiteMatrix(controls.start.y, controls.end.y, pp0.y, pp1.y);
         let segmentPoints = createSegments(Mx, My, segmentColors.length);
         segmentPoints.push(controls.end);
 
-        drawSegments(controls, segmentPoints, segmentColors, showPoints, showLine, showControl);
+        drawSegments(controls, segmentPoints, segmentColors, showPoints, showLine, showControl, true);
     }
 
     function efficientHermiteMatrix(p0, p1, pp0, pp1) {
@@ -220,7 +223,7 @@ MySample.graphics = function(pixelsX, pixelsY, showPixels) {
         let segmentPoints = createSegments(Mx, My, segmentColors.length);
         segmentPoints.push(controls.end);
 
-        drawSegments(controls, segmentPoints, segmentColors, showPoints, showLine, showControl);
+        drawSegments(controls, segmentPoints, segmentColors, showPoints, showLine, showControl, false);
     }
 
     function efficientCardinalMatrix(pk_1, pk, pk1, pk2, s) {
@@ -249,7 +252,7 @@ MySample.graphics = function(pixelsX, pixelsY, showPixels) {
         let segmentPoints = createSegments(Mx, My, segmentColors.length);
         segmentPoints.push(controls.start);
 
-        drawSegments(controls, segmentPoints, segmentColors, showPoints, showLine, showControl);
+        drawSegments(controls, segmentPoints, segmentColors, showPoints, showLine, showControl, false);
     }
 
     function efficientBezierMatrix(p0, p1, p2, p3) {
@@ -286,13 +289,15 @@ MySample.graphics = function(pixelsX, pixelsY, showPixels) {
     // Renders a set of line segments based on the input parameters.
     //
     //------------------------------------------------------------------
-    function drawSegments(controls, segmentPoints, segmentColors, showPoints, showLine, showControl) {
+    function drawSegments(controls, segmentPoints, segmentColors, showPoints, showLine, showControl, showControlLine) {
         if (showControl) {
             let controlColor = 'rgb(180, 180, 180)';
-            drawLine(controls.start.x, controls.start.y, controls.controlOne.x, controls.controlOne.y, controlColor);
             drawPoint(controls.controlOne.x, controls.controlOne.y, controlColor);
-            drawLine(controls.end.x, controls.end.y, controls.controlTwo.x, controls.controlTwo.y, controlColor);
             drawPoint(controls.controlTwo.x, controls.controlTwo.y, controlColor);
+            if (showControlLine) {
+                drawLine(controls.start.x, controls.start.y, controls.controlOne.x, controls.controlOne.y, controlColor);
+                drawLine(controls.end.x, controls.end.y, controls.controlTwo.x, controls.controlTwo.y, controlColor);
+            }
         }
         if (showPoints) {
             for (let i = 0; i < segmentPoints.length; i++) {
