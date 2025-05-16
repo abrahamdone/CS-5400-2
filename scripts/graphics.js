@@ -13,6 +13,10 @@ MySample.graphics = function(pixelsX, pixelsY, showPixels) {
     const deltaX = canvas.width / pixelsX;
     const deltaY = canvas.height / pixelsY;
 
+    let hermiteUMs = new Map();
+    let cardinalUMs = new Map();
+    let bezierUMs = new Map();
+
     //------------------------------------------------------------------
     //
     // Public function that allows the client code to clear the canvas.
@@ -185,27 +189,35 @@ MySample.graphics = function(pixelsX, pixelsY, showPixels) {
         if (segmentColors.length === 0) {
             return;
         }
+        // Precompute for optimization
+        if (hermiteUMs.size !== segmentColors.length) {
+            calculateHermiteUMs(segmentColors.length);
+        }
         let pp0 = {x: controls.controlOne.x - controls.start.x, y: controls.controlOne.y - controls.start.y};
         let pp1 = {x: controls.end.x - controls.controlTwo.x, y: controls.end.y - controls.controlTwo.y};
-
-        let Mx = efficientHermiteMatrix(controls.start.x, controls.end.x, pp0.x, pp1.x);
-        let My = efficientHermiteMatrix(controls.start.y, controls.end.y, pp0.y, pp1.y);
-        let segmentPoints = createSegments(Mx, My, segmentColors.length);
+        let Px = math.matrix([[controls.start.x], [controls.end.x], [pp0.x], [pp1.x]]);
+        let Py = math.matrix([[controls.start.y], [controls.end.y], [pp0.y], [pp1.y]]);
+        let segmentPoints = createSegments(hermiteUMs, Px, Py, segmentColors.length);
         segmentPoints.push(controls.end);
 
         drawSegments(controls, segmentPoints, segmentColors, showPoints, showLine, showControl, true);
     }
 
-    function efficientHermiteMatrix(p0, p1, pp0, pp1) {
-        return math.multiply(
-            math.matrix([
-                [ 2, -2,  1,  1],
-                [-3,  3, -2, -1],
-                [ 0,  0,  1,  0],
-                [ 1,  0,  0,  0]
-            ]),
-            math.matrix([[p0], [p1], [pp0], [pp1]])
-        )
+    function calculateHermiteUMs(size) {
+        let M = math.matrix([
+            [ 2, -2,  1,  1],
+            [-3,  3, -2, -1],
+            [ 0,  0,  1,  0],
+            [ 1,  0,  0,  0]
+        ]);
+        let u = 0.0;
+        let du = 1 / size;
+        for (let i = 1; i <= size; i++) {
+            let U = math.matrix([[u ** 3, u ** 2, u, 1]]);
+            let UM = math.multiply(U, M);
+            hermiteUMs.set(u, UM);
+            u += du;
+        }
     }
 
     //------------------------------------------------------------------
@@ -218,24 +230,51 @@ MySample.graphics = function(pixelsX, pixelsY, showPixels) {
             return;
         }
         let s = (1 - controls.tension) / 2;
-        let Mx = efficientCardinalMatrix(controls.controlOne.x, controls.start.x, controls.end.x, controls.controlTwo.x, s);
-        let My = efficientCardinalMatrix(controls.controlOne.y, controls.start.y, controls.end.y, controls.controlTwo.y, s);
-        let segmentPoints = createSegments(Mx, My, segmentColors.length);
+        // Precompute for optimization
+        let UMs = getCardinalUMs(segmentColors.length, s);
+        if (UMs.size !== segmentColors.length) {
+            calculateCardinalUMs(segmentColors.length, s);
+            UMs = getCardinalUMs(segmentColors.length, s);
+        }
+        let Px = math.matrix([[controls.controlOne.x], [controls.start.x], [controls.end.x], [controls.controlTwo.x]]);
+        let Py = math.matrix([[controls.controlOne.y], [controls.start.y], [controls.end.y], [controls.controlTwo.y]]);
+        let segmentPoints = createSegments(UMs, Px, Py, segmentColors.length);
         segmentPoints.push(controls.end);
 
         drawSegments(controls, segmentPoints, segmentColors, showPoints, showLine, showControl, false);
     }
 
-    function efficientCardinalMatrix(pk_1, pk, pk1, pk2, s) {
-        return math.multiply(
-            math.matrix([
-                [   -s,  2 - s,      s - 2,   s],
-                [2 * s,  s - 3,  3 - 2 * s,  -s],
-                [   -s,      0,          s,   0],
-                [    0,      1,          0,   0]
-            ]),
-            math.matrix([[pk_1], [pk], [pk1], [pk2]])
-        )
+    function calculateCardinalUMs(size, s) {
+        let M = math.matrix([
+            [   -s, 2 - s,     s - 2,  s],
+            [2 * s, s - 3, 3 - 2 * s, -s],
+            [   -s,     0,         s,  0],
+            [    0,     1,         0,  0]
+        ]);
+        let u = 0.0;
+        let du = 1 / size;
+        for (let i = 1; i <= size; i++) {
+            let U = math.matrix([[u ** 3, u ** 2, u, 1]]);
+            let UM = math.multiply(U, M);
+            cardinalUMs.set(`{s: ${s}, u: ${u}}`, UM);
+            u += du;
+        }
+    }
+
+    function getCardinalUMs(size, s) {
+        let UMs = new Map();
+        let u = 0.0;
+        let du = 1 / size;
+        for (let i = 1; i <= size; i++) {
+            let UM = cardinalUMs.get(`{s: ${s}, u: ${u}}`);
+            if (UM !== undefined) {
+                UMs.set(u, UM);
+            } else {
+                break;
+            }
+            u += du;
+        }
+        return UMs;
     }
 
     //------------------------------------------------------------------
@@ -247,37 +286,46 @@ MySample.graphics = function(pixelsX, pixelsY, showPixels) {
         if (segmentColors.length === 0) {
             return;
         }
-        let Mx = efficientBezierMatrix(controls.start.x, controls.controlOne.x, controls.controlTwo.x, controls.end.x);
-        let My = efficientBezierMatrix(controls.start.y, controls.controlOne.y, controls.controlTwo.y, controls.end.y);
-        let segmentPoints = createSegments(Mx, My, segmentColors.length);
+        // Precompute for optimization
+        if (bezierUMs.size !== segmentColors.length) {
+            calculateBezierUMs(segmentColors.length);
+        }
+        let Px = math.matrix([[controls.start.x], [controls.controlOne.x], [controls.controlTwo.x], [controls.end.x]]);
+        let Py = math.matrix([[controls.start.y], [controls.controlOne.y], [controls.controlTwo.y], [controls.end.y]]);
+        let segmentPoints = createSegments(bezierUMs, Px, Py, segmentColors.length);
         segmentPoints.push(controls.start);
 
         drawSegments(controls, segmentPoints, segmentColors, showPoints, showLine, showControl, false);
     }
 
-    function efficientBezierMatrix(p0, p1, p2, p3) {
-        return math.multiply(
-            math.matrix([
-                [1, -3,  3, -1],
-                [0,  3, -6,  3],
-                [0,  0,  3, -3],
-                [0,  0,  0,  1]
-            ]),
-            math.matrix([[p0], [p1], [p2], [p3]])
-        )
+    function calculateBezierUMs(size) {
+        let M = math.matrix([
+            [1, -3,  3, -1],
+            [0,  3, -6,  3],
+            [0,  0,  3, -3],
+            [0,  0,  0,  1]
+        ]);
+        let u = 0.0;
+        let du = 1 / size;
+        for (let i = 1; i <= size; i++) {
+            let U = math.matrix([[u ** 3, u ** 2, u, 1]]);
+            let UM = math.multiply(U, M);
+            bezierUMs.set(u, UM);
+            u += du;
+        }
     }
 
-    function createSegments(Mx, My, segments) {
+    function createSegments(UMs, Px, Py, segments) {
         let u = 0.0;
         let du = 1 / segments;
         let segmentPoints = [];
 
         for (let i = 0; i < segments; i++) {
-            let Pu = math.matrix([[u ** 3, u ** 2, u, 1]]);
-            let Ux = math.multiply(Pu, Mx);
-            let Uy = math.multiply(Pu, My);
+            let UM = UMs.get(u);
+            let x = math.multiply(UM, Px);
+            let y = math.multiply(UM, Py);
 
-            segmentPoints.push({x: Ux.get([0,0]), y: Uy.get([0,0])});
+            segmentPoints.push({x: x.get([0,0]), y: y.get([0,0])});
             u += du;
         }
 
