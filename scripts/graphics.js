@@ -13,6 +13,7 @@ MySample.graphics = function(pixelsX, pixelsY, showPixels) {
     const deltaX = canvas.width / pixelsX;
     const deltaY = canvas.height / pixelsY;
 
+    // Saved precomputed matrices for future calculation
     let hermiteUMs = new Map();
     let cardinalUMs = new Map();
     let bezierUMs = new Map();
@@ -189,8 +190,9 @@ MySample.graphics = function(pixelsX, pixelsY, showPixels) {
         if (segmentColors.length === 0) {
             return;
         }
+
         // Precompute for optimization
-        let UMs = getUMs(hermiteUMs, segmentColors.length);
+        let UMs = getBlendingFunctions(hermiteUMs, segmentColors.length);
         if (UMs.size !== segmentColors.length) {
             let M = math.matrix([
                 [ 2, -2,  1,  1],
@@ -198,14 +200,18 @@ MySample.graphics = function(pixelsX, pixelsY, showPixels) {
                 [ 0,  0,  1,  0],
                 [ 1,  0,  0,  0]
             ]);
-            hermiteUMs = calculateUMs(M, segmentColors.length);
-            UMs = getUMs(hermiteUMs, segmentColors.length);
+            hermiteUMs = calculateBlendingFunctions(M, segmentColors.length);
+            UMs = getBlendingFunctions(hermiteUMs, segmentColors.length);
         }
+
         let pp0 = {x: controls.controlOne.x - controls.start.x, y: controls.controlOne.y - controls.start.y};
         let pp1 = {x: controls.end.x - controls.controlTwo.x, y: controls.end.y - controls.controlTwo.y};
         let Px = math.matrix([[controls.start.x], [controls.end.x], [pp0.x], [pp1.x]]);
         let Py = math.matrix([[controls.start.y], [controls.end.y], [pp0.y], [pp1.y]]);
-        let segmentPoints = createSegments(UMs, Px, Py, segmentColors.length);
+
+        // Use the precomputed matrices
+        let segmentPoints = calculateSegments(UMs, Px, Py, segmentColors.length);
+
         segmentPoints.push(controls.end);
 
         drawSegments(controls, segmentPoints, segmentColors, showPoints, showLine, showControl, true);
@@ -220,22 +226,27 @@ MySample.graphics = function(pixelsX, pixelsY, showPixels) {
         if (segmentColors.length === 0) {
             return;
         }
-        let s = (1 - controls.tension) / 2;
+
         // Precompute for optimization
-        let UMs = getUMsWithS(cardinalUMs, segmentColors.length, s);
+        let UMs = getBlendingFunctionsWithTension(cardinalUMs, segmentColors.length, controls.tension);
         if (UMs.size !== segmentColors.length) {
+            let s = (1 - controls.tension) / 2;
             let M = math.matrix([
                 [   -s, 2 - s,     s - 2,  s],
                 [2 * s, s - 3, 3 - 2 * s, -s],
                 [   -s,     0,         s,  0],
                 [    0,     1,         0,  0]
             ]);
-            cardinalUMs = calculateUMsWithS(M, segmentColors.length, s);
-            UMs = getUMsWithS(cardinalUMs, segmentColors.length, s);
+            cardinalUMs = calculateBlendingFunctionsWithTension(M, segmentColors.length, controls.tension);
+            UMs = getBlendingFunctionsWithTension(cardinalUMs, segmentColors.length, controls.tension);
         }
+
         let Px = math.matrix([[controls.controlOne.x], [controls.start.x], [controls.end.x], [controls.controlTwo.x]]);
         let Py = math.matrix([[controls.controlOne.y], [controls.start.y], [controls.end.y], [controls.controlTwo.y]]);
-        let segmentPoints = createSegments(UMs, Px, Py, segmentColors.length);
+
+        // Use the precomputed matrices
+        let segmentPoints = calculateSegments(UMs, Px, Py, segmentColors.length);
+
         segmentPoints.push(controls.end);
 
         drawSegments(controls, segmentPoints, segmentColors, showPoints, showLine, showControl, false);
@@ -250,8 +261,9 @@ MySample.graphics = function(pixelsX, pixelsY, showPixels) {
         if (segmentColors.length === 0) {
             return;
         }
+
         // Precompute for optimization
-        let UMs = getUMs(bezierUMs, segmentColors.length);
+        let UMs = getBlendingFunctions(bezierUMs, segmentColors.length);
         if (UMs.size !== segmentColors.length) {
             let M = math.matrix([
                 [1, -3,  3, -1],
@@ -259,18 +271,27 @@ MySample.graphics = function(pixelsX, pixelsY, showPixels) {
                 [0,  0,  3, -3],
                 [0,  0,  0,  1]
             ]);
-            bezierUMs = calculateUMs(M, segmentColors.length);
-            UMs = getUMs(bezierUMs, segmentColors.length);
+            bezierUMs = calculateBlendingFunctions(M, segmentColors.length);
+            UMs = getBlendingFunctions(bezierUMs, segmentColors.length);
         }
+
         let Px = math.matrix([[controls.start.x], [controls.controlOne.x], [controls.controlTwo.x], [controls.end.x]]);
         let Py = math.matrix([[controls.start.y], [controls.controlOne.y], [controls.controlTwo.y], [controls.end.y]]);
-        let segmentPoints = createSegments(UMs, Px, Py, segmentColors.length);
+
+        // Use the precomputed matrices
+        let segmentPoints = calculateSegments(UMs, Px, Py, segmentColors.length);
+
         segmentPoints.push(controls.start);
 
         drawSegments(controls, segmentPoints, segmentColors, showPoints, showLine, showControl, false);
     }
 
-    function calculateUMs(M, size) {
+    //------------------------------------------------------------------
+    //
+    // Precomputes U*M based on the number of segments.
+    //
+    //------------------------------------------------------------------
+    function calculateBlendingFunctions(M, size) {
         let UMs = new Map();
         let u = 0.0;
         let du = 1 / size;
@@ -283,7 +304,13 @@ MySample.graphics = function(pixelsX, pixelsY, showPixels) {
         return UMs;
     }
 
-    function getUMs(precomputeUMs, size) {
+    //------------------------------------------------------------------
+    //
+    // Gets a set of precomputed matrices for the U*M calculation
+    // based off the number of segments.
+    //
+    //------------------------------------------------------------------
+    function getBlendingFunctions(precomputeUMs, size) {
         let UMs = new Map();
         let u = 0.0;
         let du = 1 / size;
@@ -299,7 +326,14 @@ MySample.graphics = function(pixelsX, pixelsY, showPixels) {
         return UMs;
     }
 
-    function calculateUMsWithS(M, size, s) {
+    //------------------------------------------------------------------
+    //
+    // Precomputes U*M based on the number of segments
+    // using the tension value as well.
+    //
+    //------------------------------------------------------------------
+    function calculateBlendingFunctionsWithTension(M, size, tension) {
+        let s = (1 - tension) / 2;
         let UMs = new Map();
         let u = 0.0;
         let du = 1 / size;
@@ -312,7 +346,14 @@ MySample.graphics = function(pixelsX, pixelsY, showPixels) {
         return UMs;
     }
 
-    function getUMsWithS(precomputedUMs, size, s) {
+    //------------------------------------------------------------------
+    //
+    // Gets a set of precomputed matrices for the U*M calculation
+    // based off the number of segments and the tension value.
+    //
+    //------------------------------------------------------------------
+    function getBlendingFunctionsWithTension(precomputedUMs, size, tension) {
+        let s = (1 - tension) / 2;
         let UMs = new Map();
         let u = 0.0;
         let du = 1 / size;
@@ -328,7 +369,13 @@ MySample.graphics = function(pixelsX, pixelsY, showPixels) {
         return UMs;
     }
 
-    function createSegments(UMs, Px, Py, segments) {
+    //------------------------------------------------------------------
+    //
+    // Calculates a set of line segments based on the matrices
+    // and number of segments.
+    //
+    //------------------------------------------------------------------
+    function calculateSegments(UMs, Px, Py, segments) {
         let u = 0.0;
         let du = 1 / segments;
         let segmentPoints = [];
