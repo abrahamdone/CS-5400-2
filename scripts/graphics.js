@@ -214,7 +214,7 @@ MySample.graphics = function(pixelsX, pixelsY, showPixels) {
 
         segmentPoints.push(controls.end);
 
-        drawSegments(controls, segmentPoints, segmentColors, showPoints, showLine, showControl, true);
+        drawSegments(controls, segmentPoints, segmentColors, showPoints, showLine, showControl);
     }
 
     //------------------------------------------------------------------
@@ -249,7 +249,7 @@ MySample.graphics = function(pixelsX, pixelsY, showPixels) {
 
         segmentPoints.push(controls.end);
 
-        drawSegments(controls, segmentPoints, segmentColors, showPoints, showLine, showControl, false);
+        drawSegments(controls, segmentPoints, segmentColors, showPoints, showLine, showControl);
     }
 
     //------------------------------------------------------------------
@@ -283,7 +283,7 @@ MySample.graphics = function(pixelsX, pixelsY, showPixels) {
 
         segmentPoints.push(controls.start);
 
-        drawSegments(controls, segmentPoints, segmentColors, showPoints, showLine, showControl, false);
+        drawSegments(controls, segmentPoints, segmentColors, showPoints, showLine, showControl);
     }
 
     //------------------------------------------------------------------
@@ -397,15 +397,11 @@ MySample.graphics = function(pixelsX, pixelsY, showPixels) {
     // Renders a set of line segments based on the input parameters.
     //
     //------------------------------------------------------------------
-    function drawSegments(controls, segmentPoints, segmentColors, showPoints, showLine, showControl, showControlLine) {
+    function drawSegments(controls, segmentPoints, segmentColors, showPoints, showLine, showControl) {
         if (showControl) {
             let controlColor = 'rgb(180, 180, 180)';
             drawPoint(controls.controlOne.x, controls.controlOne.y, controlColor);
             drawPoint(controls.controlTwo.x, controls.controlTwo.y, controlColor);
-            if (showControlLine) {
-                drawLine(controls.start.x, controls.start.y, controls.controlOne.x, controls.controlOne.y, controlColor);
-                drawLine(controls.end.x, controls.end.y, controls.controlTwo.x, controls.controlTwo.y, controlColor);
-            }
         }
         if (showPoints) {
             for (let i = 0; i < segmentPoints.length; i++) {
