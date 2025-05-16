@@ -288,8 +288,11 @@ MySample.graphics = function(pixelsX, pixelsY, showPixels) {
     //------------------------------------------------------------------
     function drawSegments(controls, segmentPoints, segmentColors, showPoints, showLine, showControl) {
         if (showControl) {
-            drawPoint(controls.controlOne.x, controls.controlOne.y, 'rgb(180, 180, 180)');
-            drawPoint(controls.controlTwo.x, controls.controlTwo.y, 'rgb(180, 180, 180)');
+            let controlColor = 'rgb(180, 180, 180)';
+            drawLine(controls.start.x, controls.start.y, controls.controlOne.x, controls.controlOne.y, controlColor);
+            drawPoint(controls.controlOne.x, controls.controlOne.y, controlColor);
+            drawLine(controls.end.x, controls.end.y, controls.controlTwo.x, controls.controlTwo.y, controlColor);
+            drawPoint(controls.controlTwo.x, controls.controlTwo.y, controlColor);
         }
         if (showPoints) {
             for (let i = 0; i < segmentPoints.length; i++) {

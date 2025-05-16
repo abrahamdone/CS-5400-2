@@ -3,12 +3,12 @@ MySample.main = (function(graphics) {
     'use strict';
 
     let previousTime = performance.now();
-    let start = {x: graphics.sizeX / 4, y: graphics.sizeY / 4};
-    let end = {x: 3 * graphics.sizeX / 4, y: 3 * graphics.sizeY / 4};
-    let controlOne = {x: 3 * graphics.sizeX / 4, y: graphics.sizeY / 4};
-    let controlTwo = {x: 3 * graphics.sizeX / 4, y: graphics.sizeY / 4};
+    let start = {x: graphics.sizeX * 0.1, y: graphics.sizeY * 0.5};
+    let end = {x: graphics.sizeX * 0.9, y: graphics.sizeY * 0.5};
+    let controlOne = {x: graphics.sizeX * 0.1, y: -graphics.sizeY * 0.75};
+    let controlTwo = {x: graphics.sizeX * 0.1, y: graphics.sizeY * 0.75};
     let segments = 100;
-    let nextHue = 0;
+    let startHue = 0;
     let colors = [];
     let frameBuffer = 0;
 
@@ -18,11 +18,12 @@ MySample.main = (function(graphics) {
     //
     //------------------------------------------------------------------
     function update(elapsedTime) {
-        frameBuffer += 1;
-        if (frameBuffer < 50) {
-            return;
-        }
         colors.length = 0;
+        startHue += 1;
+        if (startHue > 360) {
+            startHue = 0;
+        }
+        let nextHue = startHue;
         for (let i = 0; i < segments; i += 1) {
             colors.push(`hsl(${nextHue}, 80%, 50%)`);
             if (nextHue > 360) {
@@ -39,7 +40,6 @@ MySample.main = (function(graphics) {
     //
     //------------------------------------------------------------------
     function render() {
-        console.log("hello")
         graphics.clear();
         graphics.drawCurve(
             graphics.Curve.Hermite,
